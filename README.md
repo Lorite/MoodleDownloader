@@ -8,6 +8,8 @@
 
 [urllib](https://docs.python.org/3/library/urllib.html)
 
+[cookielib](https://docs.python.org/2/library/cookielib.html)
+
 
 ## References
 
