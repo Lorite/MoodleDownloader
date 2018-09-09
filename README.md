@@ -17,4 +17,6 @@
 
 [Download all pdfs webpage](https://null-byte.wonderhowto.com/how-to/download-all-pdfs-webpage-with-python-script-0163031/)
 
+[Scrape web pages](https://www.digitalocean.com/community/tutorials/how-to-scrape-web-pages-with-beautiful-soup-and-python-3)
+
 ### You're welcome ;)
