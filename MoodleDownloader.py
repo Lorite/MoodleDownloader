@@ -3,6 +3,7 @@ import http.cookiejar
 import urllib.request
 from bs4 import BeautifulSoup
 import urllib.parse 
+import getpass
 import os
 import sys
 
@@ -17,7 +18,7 @@ url = "https://alud.deusto.es/login/index.php"
 
 # data input 0
 userData = { "username" : input("Please introduce your username: "),
-             "password" : input("Please introduce your password: "),
+             "password" : getpass.getpass("Please introduce your password: "),
              "rememberusername" : 0}
 userDataEncoded = urllib.parse.urlencode(userData).encode("utf-8")
 
@@ -54,7 +55,7 @@ else:
 
 # data input 1
 # TODO change to input
-downloadPath = "D:\Alejandro\Downloads\Alud downloader test"
+downloadPath = "D:\Downloads\Alud downloader test"
 
 # TODO code choose subject
 subjectsLinks = logInResponseHTMLParsed.find_all('a', href=True)
@@ -72,13 +73,48 @@ subjectResponseHTML = subjectResponse.read()
 subjectResponseHTMLParsed = BeautifulSoup(subjectResponseHTML, features="html.parser")
 filesLinks = subjectResponseHTMLParsed.find_all('a', href=True)
 for tag in filesLinks:
-    tag["href"] = urllib.parse.urljoin(subjectURL, tag["href"])
-    if os.path.splitext(os.path.basename(tag["href"]))[1] == ".pdf":
-        tempFile = opener.open(tag["href"])
-        print("Downloading %s", os.path.basename(tag["href"]))
-        f = open(downloadPath + "\\" + os.path.basename(tag["href"], "wb"))
-        f.write(current.read())
+    fileLink = urllib.parse.urljoin(subjectURL, tag["href"])
+    print("+++++++++++++")
+    print(fileLink)
+    print("-")
+    print("--")
+    if "resource" in fileLink:
+        tempFile = opener.open(fileLink)
+
+        # set file name
+        fileName = tag.find('span', {"class":"instancename"}).get_text()
+        if fileName.endswith(' Archivo'):
+            fileName = fileName[:-8]
+        fileType = tag.find('img', src=True)['src']
+        if 'document' in fileType:
+            fileName += '.docx'
+        elif 'pdf' in fileType:
+            fileName += '.pdf'
+        elif 'powerpoint' in fileType:
+            fileName += '.pptx'
+        elif 'spreadsheet' in fileType:
+            fileName += '.xlsx'
+        elif 'archive' in fileType:
+            fileName += '.rar'
+        elif 'jpeg' in fileType:
+            fileName += '.jpg'
+        elif 'bmp' in fileType:
+            fileName += '.bmp'
+        elif 'png' in fileType:
+            fileName += '.png'
+        elif 'page' in fileType:
+            # TODO
+        elif 'url' in fileType:
+            # TODO better
+            fileName += '.html'
+                
+
+        # save file
+        print("Downloading %s" % fileName)
+        f = open(downloadPath + "\\" + fileName, "wb")
+        f.write(tempFile.read())
         f.close()
+        break;
     
 # UI end
 print("Downloading completed!")
