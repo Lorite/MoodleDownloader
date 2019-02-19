@@ -18,8 +18,8 @@ url = "https://alud.deusto.es/login/index.php"
 
 # data input 0
 userData = { "username" : input("Please introduce your username: "),
-             "password" : getpass.getpass("Please introduce your password: "),
-             "rememberusername" : 0}
+            "password" : getpass.getpass("Please introduce your password: "),
+            "rememberusername" : 0}
 userDataEncoded = urllib.parse.urlencode(userData).encode("utf-8")
 
 # UI 1a
@@ -47,74 +47,111 @@ logInResponseHTMLParsed = BeautifulSoup(logInResponseHTML, features="html.parser
 print("Initializating...")
 time.sleep(0.2)
 if (logInResponseHTMLParsed.head.find("title").text == "ALUD"):
-    print("Logged in succesfully!")
+    print("\nLogged in succesfully!")
     time.sleep(1)
-    print("Please choose a subject to download files from the list:")
+    print("\nPlease choose a subject to download files from the list (1-n):")
 else:
-    print("Error logging in.")
+    print("\nError logging in.")
 
-# data input 1
+# code choose subject
+mainPageLinks = logInResponseHTMLParsed.find_all('h3', {'class':"coursename"})
+availableSubjectsNames = [];
+availableSubjectsLinks = [];
+for mainPageLink in mainPageLinks:
+    mainPageLink = mainPageLink.find('a');
+    mainPageLinkParsed = mainPageLink["href"];
+    if 'course' in mainPageLinkParsed:
+        availableSubjectsNames.append(mainPageLink.get_text().strip())
+        availableSubjectsLinks.append(mainPageLinkParsed);
+
+for index, subject in enumerate(availableSubjectsNames, start=1):
+    print("%d. %s" % (index, subject))
+
+# data input 1 select subject to extract files from
+subjectIndex = -1
+while subjectIndex < 0 or subjectIndex > len(availableSubjectsLinks) - 1:
+    subjectIndex = int(input("Selection: ")) - 1
+subjectName = availableSubjectsNames[subjectIndex]
+subjectURL = availableSubjectsLinks[subjectIndex]
+
+# data input 2
 # TODO change to input
-downloadPath = "D:\Downloads\Alud downloader test"
+downloadPath = os.path.dirname(sys.argv[0])
 
-# TODO code choose subject
-subjectsLinks = logInResponseHTMLParsed.find_all('a', href=True)
-#subjectsLinks = subjectsLinks.find(class_='coursebox*')
-#for index, subjectsLink in enumerate(subjectsLinksItems, start=1):
-#    print(index, subjectsLink.pre)
-
-# TODO data input 2 select subject to extract files from
-subject = input()
-subjectURL = "https://alud.deusto.es/course/view.php?id=8915"
+# create folder for the subject
+subjectPath = downloadPath + "\\" + subjectName
+if not os.path.exists(subjectPath):
+    os.makedirs(subjectPath)
 
 # code download all files from selected subject
 subjectResponse = opener.open(subjectURL, userDataEncoded)
 subjectResponseHTML = subjectResponse.read()
 subjectResponseHTMLParsed = BeautifulSoup(subjectResponseHTML, features="html.parser")
-filesLinks = subjectResponseHTMLParsed.find_all('a', href=True)
-for tag in filesLinks:
-    fileLink = urllib.parse.urljoin(subjectURL, tag["href"])
-    print("+++++++++++++")
-    print(fileLink)
-    print("-")
-    print("--")
-    if "resource" in fileLink:
-        tempFile = opener.open(fileLink)
+sectionLinks = subjectResponseHTMLParsed.find_all('li', role='region')
+for index, section in enumerate(sectionLinks, start=1):
+    filesLinks = section.find_all('a', href=True)
+    sectionName = str(index) + ". " + section.find('a', href=True).get_text()
+    print("\nSection " + sectionName + ":")
+    sectionPath = subjectPath + "\\" + sectionName
+    if not os.path.exists(sectionPath):
+        os.makedirs(sectionPath)
 
-        # set file name
-        fileName = tag.find('span', {"class":"instancename"}).get_text()
-        if fileName.endswith(' Archivo'):
-            fileName = fileName[:-8]
-        fileType = tag.find('img', src=True)['src']
-        if 'document' in fileType:
-            fileName += '.docx'
-        elif 'pdf' in fileType:
-            fileName += '.pdf'
-        elif 'powerpoint' in fileType:
-            fileName += '.pptx'
-        elif 'spreadsheet' in fileType:
-            fileName += '.xlsx'
-        elif 'archive' in fileType:
-            fileName += '.rar'
-        elif 'jpeg' in fileType:
-            fileName += '.jpg'
-        elif 'bmp' in fileType:
-            fileName += '.bmp'
-        elif 'png' in fileType:
-            fileName += '.png'
-        elif 'page' in fileType:
-            # TODO
-        elif 'url' in fileType:
-            # TODO better
-            fileName += '.html'
-                
+    index2 = 1;
+    for tag in filesLinks:
+        fileLink = urllib.parse.urljoin(subjectURL, tag["href"])
+        if "resource" in fileLink:
+            tempFile = opener.open(fileLink)
 
-        # save file
-        print("Downloading %s" % fileName)
-        f = open(downloadPath + "\\" + fileName, "wb")
-        f.write(tempFile.read())
-        f.close()
-        break;
-    
+            # set file name
+            fileName = str(index2) + ". " + tag.find('span', {"class":"instancename"}).get_text()
+
+            # remove special characters
+            fileName = fileName.replace('<', ' ')
+            fileName = fileName.replace('>', ' ')
+            fileName = fileName.replace(':', ' ')
+            fileName = fileName.replace('/', ' ')
+            fileName = fileName.replace('\\', ' ')
+            fileName = fileName.replace('|', ' ')
+            fileName = fileName.replace('"', '')
+            fileName = fileName.replace('?', ' ')
+            fileName = fileName.replace('*', ' ')
+
+            # remove the word 'Archivo' if exists
+            if fileName.endswith(' Archivo'):
+                fileName = fileName[:-8]
+            fileType = tag.find('img', src=True)['src']
+            if 'document' in fileType:
+                fileName += '.docx'
+            elif 'pdf' in fileType:
+                fileName += '.pdf'
+            elif 'powerpoint' in fileType:
+                fileName += '.pptx'
+            elif 'spreadsheet' in fileType:
+                fileName += '.xlsx'
+            elif 'archive' in fileType:
+                fileName += '.rar'
+            elif 'jpeg' in fileType:
+                fileName += '.jpg'
+            elif 'bmp' in fileType:
+                fileName += '.bmp'
+            elif 'png' in fileType:
+                fileName += '.png'
+            elif 'text' in fileType:
+                fileName += '.rtf'  
+            elif 'page' in fileType:
+                # TODO
+                fileName += ''
+            elif 'url' in fileType:
+                # TODO better
+                fileName += '.html'          
+
+            # save file
+            print("Downloading %s" % fileName)
+            f = open(sectionPath + "\\" + fileName, "wb")
+            f.write(tempFile.read())
+            f.close()
+
+            index2+=1
+                    
 # UI end
 print("Downloading completed!")
